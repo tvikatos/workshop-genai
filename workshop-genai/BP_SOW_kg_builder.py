@@ -76,7 +76,7 @@ kg_builder = SimpleKGPipeline(
 
 )
 
-pdf_file = "./workshop-genai/data/CustomerA  PS BPO Enhancements Blue Planet Statement of Work.pdf"
+pdf_file = "./workshop-genai/data/Bluestar PS BPO Enhancements Blue Planet Statement of Work.pdf"
 
 result = asyncio.run(kg_builder.run_async(file_path=pdf_file))
 print(result.result)
