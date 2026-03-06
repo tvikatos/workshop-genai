@@ -7,9 +7,8 @@ import pdfplumber
 from neo4j import GraphDatabase
 from neo4j_graphrag.llm import OpenAILLM
 from neo4j_graphrag.embeddings import OpenAIEmbeddings
-from neo4j_graphrag.experimental.components.types import DocumentInfo, LexicalGraphConfig, Neo4jGraph
+from neo4j_graphrag.experimental.components.types import DocumentInfo, LexicalGraphConfig
 from neo4j_graphrag.experimental.components.lexical_graph import LexicalGraphBuilder
-from neo4j_graphrag.experimental.pipeline.kg_builder import SimpleKGPipeline
 from neo4j_graphrag.experimental.components.text_splitters.fixed_size_splitter import FixedSizeSplitter
 from neo4j_graphrag.experimental.components.kg_writer import Neo4jWriter
 from neo4j_graphrag.experimental.components.embedder import TextChunkEmbedder
@@ -96,7 +95,7 @@ def extract_text_from_pdf(pdf_path):
 #===============================
 # gets text out of pdf, splits it in chunks (one per page), creates embeddings using LLM, creates graph and stores in db
 #------------------------------------
-pdf_file = "./workshop-genai/data/CustomerA  PS BPO Enhancements Blue Planet Statement of Work.pdf"
+pdf_file = "./workshop-genai/data/Bluestar PS BPO Enhancements Blue Planet Statement of Work.pdf"
 #text = extract_text_from_pdf(pdf_file)
 pdf = pdfplumber.open(pdf_file)
 #chunks = asyncio.run(text_splitter.run(text))
