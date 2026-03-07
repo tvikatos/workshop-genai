@@ -10,8 +10,7 @@ from neo4j_graphrag.embeddings import OpenAIEmbeddings
 from neo4j_graphrag.experimental.pipeline.kg_builder import SimpleKGPipeline
 from neo4j_graphrag.experimental.components.text_splitters.fixed_size_splitter import FixedSizeSplitter
 from neo4j_graphrag.experimental.components.kg_writer import Neo4jWriter
-from neo4j_graphrag.experimental.components.resolver import SinglePropertyExactMatchResolver
-from neo4j_graphrag.generation.prompts import ERExtractionTemplate
+from neo4j_graphrag.experimental.components.resolver import SinglePropertyExactMatchResolver, SpaCySemanticMatchResolver, FuzzyMatchResolver
 
 neo4j_driver = GraphDatabase.driver(
     os.getenv("NEO4J_URI"),
@@ -20,8 +19,8 @@ neo4j_driver = GraphDatabase.driver(
 neo4j_driver.verify_connectivity()
 
 llm = OpenAILLM(
-   #model_name="gpt-5.1",
-   model_name="gpt-4.1-mini",
+   model_name="gpt-5.1",
+   #model_name="gpt-4.1-mini",
     model_params={
         "temperature": 0,
         "response_format": {"type": "json_object"},
@@ -53,9 +52,12 @@ writer = Neo4jWriter(driver=neo4j_driver, neo4j_database="neo4j", clean_db = Tru
 #prompt = '\nYou are a top-tier algorithm designed for extracting\ninformation in structured formats to build a knowledge graph.\n\nExtract the entities (nodes) and specify their type from the following text.\nAlso extract the relationships between these nodes.\n\nReturn result as JSON using the following format:\n{{"nodes": [ {{"id": "0", "label": "Person", "properties": {{"name": "John"}} }}],\n"relationships": [{{"type": "KNOWS", "start_node_id": "0", "end_node_id": "1", "properties": {{"since": "2024-08-01"}} }}] }}\n\nUse only the following node and relationship types (if provided):\n{schema}\n\nAssign a unique ID (string) to each node, and reuse it to define relationships.\nDo respect the source and target node types for relationship and\nthe relationship direction.\n\nMake sure you adhere to the following rules to produce valid JSON objects:\n- Do not return any additional information other than the JSON in it.\n- Omit any backticks around the JSON - simply output the JSON on its own.\n- The JSON object must not wrapped into a list - it is its own JSON object.\n- Property names must be enclosed in double quotes\n\nExamples:\n{examples}\n\nQuote nofdes must only be created when explicitly mentioned and must have id starting with the letter Q followed by dash and numbers only. For example Q-1234\nn{text}\n'
 
 prompt = '\nYou are a top-tier algorithm designed for extracting\ninformation in structured formats to build a knowledge graph.\n\nExtract the entities (nodes) and specify their type from the following text.\nAlso extract the relationships between these nodes.\n\nReturn result as JSON using the following format:\n{{"nodes": [ {{"id": "0", "label": "Person", "properties": {{"name": "John"}} }}],\n"relationships": [{{"type": "KNOWS", "start_node_id": "0", "end_node_id": "1", "properties": {{"since": "2024-08-01"}} }}] }}\n\nUse only the following node and relationship types (if provided):\n{schema}\n\nAssign a unique ID (string) to each node, and reuse it to define relationships.\nDo respect the source and target node types for relationship and\nthe relationship direction.\n\nMake sure you adhere to the following rules to produce valid JSON objects:\n- Do not return any additional information other than the JSON in it.\n- Omit any backticks around the JSON - simply output the JSON on its own.\n- The JSON object must not wrapped into a list - it is its own JSON object.\n- Property names must be enclosed in double quotes\n\nExamples:\n{examples}\n'
-#prompt = prompt + '\nQuote nodes must only be created when explicitly mentioned and must have id starting with the letter Q followed by dash and numbers only.\nFor example "Q-12345" will result in\n{{"nodes":[{{"id": "Q-12345", "label": "Quote"}}]}}\n'
-prompt = prompt + '\nQuote nodes must only be created when a string starting with "Q-" and followed by digits is read\n'
-prompt = prompt + '\nCustomer nodes must only be created when "Customer Name" is read\n'
+prompt = prompt + '\nQuote nodes must only be created when a string starting with Q- and followed by digits is read and must have id starting with the letter Q followed by dash and numbers only.\nFor example "Q-12345" will result in\n{{"nodes":[{{"id": "Q-12345", "label": "Quote"}}]}}\n'
+prompt = prompt + '\nCustomer nodes must only be created when Customer Name is read in a table\n'
+prompt = prompt + '\nCustomer nodes must not have the name Customer\n'
+prompt = prompt + '\nCustomer nodes must not have the name Blueplanet\n'
+prompt = prompt + '\nWords in Customer nodes names must have the first letter capital and the rest low case\n'
+prompt = prompt + '\nThere should be ano more than one quote and one customer created\n'
 prompt = prompt + '\n{text}\n'
 
 
@@ -83,8 +85,12 @@ print(result.result)
 
 id_resolver = SinglePropertyExactMatchResolver(driver=neo4j_driver, resolve_property ="id", neo4j_database=os.getenv("NEO4J_DATABASE"))
 stats = asyncio.run(id_resolver.run())
+print("Quotes: ")
 print(stats)
-name_resolver = SinglePropertyExactMatchResolver(driver=neo4j_driver, resolve_property ="name", neo4j_database=os.getenv("NEO4J_DATABASE"))
+#name_resolver = SinglePropertyExactMatchResolver(driver=neo4j_driver, resolve_property ="name", neo4j_database=os.getenv("NEO4J_DATABASE"))
+name_resolver = SpaCySemanticMatchResolver(driver=neo4j_driver, similarity_threshold =0.5)
+#name_resolver = FuzzyMatchResolver(driver=neo4j_driver, similarity_threshold =0.5)
 stats = asyncio.run(name_resolver.run())
+print("Customers: ")
 print(stats)
 
